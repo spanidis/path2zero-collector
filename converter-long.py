@@ -188,42 +188,41 @@ if csv_files:
                     st.session_state.mapping_transformed = False
                     st.session_state.mapping_df = None
                     st.rerun()
-			# --- Final IAMC Format Output ---
-if st.session_state.mapping_transformed:
+
+            # --- Final IAMC Format Output ---
+            if st.session_state.mapping_transformed:
     st.subheader("IAMC Transformation")
     if st.button("Transform to IAMC Format"):
         final_df = pd.concat([st.session_state.mapping_df, st.session_state.year_df], axis=1).reset_index(drop=True)
         st.dataframe(final_df, use_container_width=True)
 
-        # Save IAMC format as CSV (optional)
-        final_csv = final_df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="Download IAMC CSV",
-            data=final_csv,
-            file_name="iamc_transformed.csv",
-            mime="text/csv",
-        )
+        # Add new button for long-format transformation:
+        if st.button("Create IAMC Long Format for Postgres"):
+            # Identify year columns in the year_df (these are wide columns)
+            year_cols = st.session_state.year_df.columns.tolist()
+            
+            # Combine fixed columns + year columns for melting
+            fixed_cols = st.session_state.mapping_df.columns.tolist()
+            
+            # Combine both dataframes again for melting
+            combined_df = pd.concat([st.session_state.mapping_df.reset_index(drop=True),
+                                     st.session_state.year_df.reset_index(drop=True)], axis=1)
+            
+            # Melt wide year columns to long format
+            long_df = combined_df.melt(id_vars=fixed_cols, 
+                                       value_vars=year_cols,
+                                       var_name='Year',
+                                       value_name='Value')
 
-        # --- NEW: Long format export ---
-        st.subheader("Long Format for Postgres")
-        if st.button("Export Long Format CSV for Postgres"):
-            # Melt the wide dataframe into long format
-            id_vars = ['Model', 'Scenario', 'Region', 'Variable', 'Unit']
-            value_vars = [col for col in final_df.columns if col not in id_vars]
-            long_df = pd.melt(final_df, id_vars=id_vars, value_vars=value_vars,
-                              var_name='Year', value_name='Value')
-
-            # Display the long table
+            # Convert Year to int if possible
+            try:
+                long_df['Year'] = long_df['Year'].astype(int)
+            except:
+                pass
+            
+            # Show the long format DataFrame
+            st.subheader("IAMC Long Format Table for Postgres")
             st.dataframe(long_df, use_container_width=True)
-
-            # Download button for the long format
-            long_csv = long_df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="Download Long Format CSV",
-                data=long_csv,
-                file_name="iamc_long_format.csv",
-                mime="text/csv",
-            )
 
 
 else:
