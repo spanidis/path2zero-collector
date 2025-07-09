@@ -57,6 +57,12 @@ if "mapping_transformed" not in st.session_state:
     st.session_state.mapping_transformed = False
     st.session_state.mapping_df = None
 
+if "final_iamc_df" not in st.session_state:
+    st.session_state.final_iamc_df = None
+
+if "final_iamc_long_df" not in st.session_state:
+    st.session_state.final_iamc_long_df = None
+
 # --- Data Folder ---
 user_folder = os.path.join("data", "default_user")
 os.makedirs(user_folder, exist_ok=True)
@@ -190,39 +196,59 @@ if csv_files:
                     st.rerun()
 
             # --- Final IAMC Format Output ---
-            if st.session_state.mapping_transformed:
-				st.subheader("IAMC Transformation")
-				if st.button("Transform to IAMC Format"):
-					final_df = pd.concat([st.session_state.mapping_df, st.session_state.year_df], axis=1).reset_index(drop=True)
-					st.dataframe(final_df, use_container_width=True)
+            if st.session_state.year_transformed and st.session_state.mapping_transformed:
+                st.subheader("IAMC Transformation")
 
-					# Add new button for long-format transformation:
-					if st.button("Create IAMC Long Format for Postgres"):
-						# Identify year columns in the year_df (these are wide columns)
-						year_cols = st.session_state.year_df.columns.tolist()
-						
-						# Combine fixed columns + year columns for melting
-						fixed_cols = st.session_state.mapping_df.columns.tolist()
-						
-						# Combine both dataframes again for melting
-						combined_df = pd.concat([st.session_state.mapping_df.reset_index(drop=True),
-												 st.session_state.year_df.reset_index(drop=True)], axis=1)
-						
-						# Melt wide year columns to long format
-						long_df = combined_df.melt(id_vars=fixed_cols, 
-												   value_vars=year_cols,
-												   var_name='Year',
-												   value_name='Value')
+                if st.button("Transform to IAMC Format"):
+                    final_df = pd.concat([st.session_state.mapping_df, st.session_state.year_df], axis=1).reset_index(drop=True)
+                    st.session_state.final_iamc_df = final_df
 
-						# Convert Year to int if possible
-						try:
-							long_df['Year'] = long_df['Year'].astype(int)
-						except:
-							pass
-						
-						# Show the long format DataFrame
-						st.subheader("IAMC Long Format Table for Postgres")
-						st.dataframe(long_df, use_container_width=True)
+            # Show IAMC DataFrame only if it exists
+            if st.session_state.final_iamc_df is not None:
+                st.subheader("IAMC Format DataFrame")
+                st.dataframe(st.session_state.final_iamc_df, use_container_width=True)
+
+                # CSV Export: IAMC Format (wide)
+                csv_iamc = st.session_state.final_iamc_df.to_csv(index=False)
+                st.download_button(
+                    label="📥 Download IAMC Format CSV",
+                    data=csv_iamc,
+                    file_name="iamc_format.csv",
+                    mime="text/csv"
+                )
+
+                # Transform to Long Format
+                if st.button("Transform to Long Format"):
+                    df = st.session_state.final_iamc_df
+
+                    expected_id_vars = ['Model', 'Scenario', 'Region', 'Variable', 'Unit']
+                    id_vars = [col for col in expected_id_vars if col in df.columns]
+                    year_columns = [col for col in df.columns if col not in id_vars]
+
+                    if not id_vars or not year_columns:
+                        st.error("Cannot transform to long format: missing identifier columns or year data.")
+                    else:
+                        st.session_state.final_iamc_long_df = df.melt(
+                            id_vars=id_vars,
+                            var_name='Year',
+                            value_name='Value'
+                        )
+
+            # Show Long Format DataFrame and download option (outside the button block)
+            if st.session_state.final_iamc_long_df is not None:
+                st.subheader("Long Format DataFrame")
+                st.dataframe(st.session_state.final_iamc_long_df, use_container_width=True)
+
+                # CSV Export: Long Format
+                csv_long = st.session_state.final_iamc_long_df.to_csv(index=False)
+                st.download_button(
+                    label="📥 Download IAMC Long Format CSV",
+                    data=csv_long,
+                    file_name="iamc_long_format.csv",
+                    mime="text/csv"
+                )
+
+
 
 
 else:
