@@ -191,38 +191,38 @@ if csv_files:
 
             # --- Final IAMC Format Output ---
             if st.session_state.mapping_transformed:
-    st.subheader("IAMC Transformation")
-    if st.button("Transform to IAMC Format"):
-        final_df = pd.concat([st.session_state.mapping_df, st.session_state.year_df], axis=1).reset_index(drop=True)
-        st.dataframe(final_df, use_container_width=True)
+				st.subheader("IAMC Transformation")
+				if st.button("Transform to IAMC Format"):
+					final_df = pd.concat([st.session_state.mapping_df, st.session_state.year_df], axis=1).reset_index(drop=True)
+					st.dataframe(final_df, use_container_width=True)
 
-        # Add new button for long-format transformation:
-        if st.button("Create IAMC Long Format for Postgres"):
-            # Identify year columns in the year_df (these are wide columns)
-            year_cols = st.session_state.year_df.columns.tolist()
-            
-            # Combine fixed columns + year columns for melting
-            fixed_cols = st.session_state.mapping_df.columns.tolist()
-            
-            # Combine both dataframes again for melting
-            combined_df = pd.concat([st.session_state.mapping_df.reset_index(drop=True),
-                                     st.session_state.year_df.reset_index(drop=True)], axis=1)
-            
-            # Melt wide year columns to long format
-            long_df = combined_df.melt(id_vars=fixed_cols, 
-                                       value_vars=year_cols,
-                                       var_name='Year',
-                                       value_name='Value')
+					# Add new button for long-format transformation:
+					if st.button("Create IAMC Long Format for Postgres"):
+						# Identify year columns in the year_df (these are wide columns)
+						year_cols = st.session_state.year_df.columns.tolist()
+						
+						# Combine fixed columns + year columns for melting
+						fixed_cols = st.session_state.mapping_df.columns.tolist()
+						
+						# Combine both dataframes again for melting
+						combined_df = pd.concat([st.session_state.mapping_df.reset_index(drop=True),
+												 st.session_state.year_df.reset_index(drop=True)], axis=1)
+						
+						# Melt wide year columns to long format
+						long_df = combined_df.melt(id_vars=fixed_cols, 
+												   value_vars=year_cols,
+												   var_name='Year',
+												   value_name='Value')
 
-            # Convert Year to int if possible
-            try:
-                long_df['Year'] = long_df['Year'].astype(int)
-            except:
-                pass
-            
-            # Show the long format DataFrame
-            st.subheader("IAMC Long Format Table for Postgres")
-            st.dataframe(long_df, use_container_width=True)
+						# Convert Year to int if possible
+						try:
+							long_df['Year'] = long_df['Year'].astype(int)
+						except:
+							pass
+						
+						# Show the long format DataFrame
+						st.subheader("IAMC Long Format Table for Postgres")
+						st.dataframe(long_df, use_container_width=True)
 
 
 else:
