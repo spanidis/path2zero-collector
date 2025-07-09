@@ -195,29 +195,29 @@ if csv_files:
                 if st.button("Transform to IAMC Format"):
                     final_df = pd.concat([st.session_state.mapping_df, st.session_state.year_df], axis=1).reset_index(drop=True)
                     st.dataframe(final_df, use_container_width=True)
-					
-					# --- Export to Long Format for Postgres ---
-					if st.button("Export Long Format CSV for Postgres"):
-						id_vars = ['Model', 'Scenario', 'Region', 'Variable', 'Unit']
-						value_vars = [col for col in final_df.columns if col not in id_vars]
+                    
+                    # --- Export to Long Format for Postgres ---
+                    if st.button("Export Long Format CSV for Postgres"):
+                        id_vars = ['Model', 'Scenario', 'Region', 'Variable', 'Unit']
+                        value_vars = [col for col in final_df.columns if col not in id_vars]
 
-						final_long_df = pd.melt(final_df, id_vars=id_vars, value_vars=value_vars,
-												var_name='Year', value_name='Value')
-						final_long_df = final_long_df.sort_values(by=id_vars + ['Year']).reset_index(drop=True)
+                        final_long_df = pd.melt(final_df, id_vars=id_vars, value_vars=value_vars,
+                                                var_name='Year', value_name='Value')
+                        final_long_df = final_long_df.sort_values(by=id_vars + ['Year']).reset_index(drop=True)
 
-						export_filename = "final_long.csv"
-						export_path = os.path.join(user_folder, export_filename)
-						final_long_df.to_csv(export_path, index=False)
+                        export_filename = "final_long.csv"
+                        export_path = os.path.join(user_folder, export_filename)
+                        final_long_df.to_csv(export_path, index=False)
 
-						st.success(f"Exported long format CSV as '{export_filename}' in your folder.")
+                        st.success(f"Exported long format CSV as '{export_filename}' in your folder.")
 
-						with open(export_path, "rb") as f:
-							st.download_button(
-								label="Download Long Format CSV",
-								data=f,
-								file_name=export_filename,
-								mime="text/csv"
-							)
+                        with open(export_path, "rb") as f:
+                            st.download_button(
+                                label="Download Long Format CSV",
+                                data=f,
+                                file_name=export_filename,
+                                mime="text/csv"
+                            )
 
 else:
     st.info("No CSV files in your folder. Upload one to get started!")
