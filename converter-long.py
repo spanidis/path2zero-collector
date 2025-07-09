@@ -188,36 +188,43 @@ if csv_files:
                     st.session_state.mapping_transformed = False
                     st.session_state.mapping_df = None
                     st.rerun()
+			# --- Final IAMC Format Output ---
+if st.session_state.mapping_transformed:
+    st.subheader("IAMC Transformation")
+    if st.button("Transform to IAMC Format"):
+        final_df = pd.concat([st.session_state.mapping_df, st.session_state.year_df], axis=1).reset_index(drop=True)
+        st.dataframe(final_df, use_container_width=True)
 
-            # --- Final IAMC Format Output ---
-            if st.session_state.mapping_transformed:
-                st.subheader("IAMC Transformation")
-                if st.button("Transform to IAMC Format"):
-                    final_df = pd.concat([st.session_state.mapping_df, st.session_state.year_df], axis=1).reset_index(drop=True)
-                    st.dataframe(final_df, use_container_width=True)
-                    
-                    # --- Export to Long Format for Postgres ---
-                    if st.button("Export Long Format CSV for Postgres"):
-                        id_vars = ['Model', 'Scenario', 'Region', 'Variable', 'Unit']
-                        value_vars = [col for col in final_df.columns if col not in id_vars]
+        # Save IAMC format as CSV (optional)
+        final_csv = final_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="Download IAMC CSV",
+            data=final_csv,
+            file_name="iamc_transformed.csv",
+            mime="text/csv",
+        )
 
-                        final_long_df = pd.melt(final_df, id_vars=id_vars, value_vars=value_vars,
-                                                var_name='Year', value_name='Value')
-                        final_long_df = final_long_df.sort_values(by=id_vars + ['Year']).reset_index(drop=True)
+        # --- NEW: Long format export ---
+        st.subheader("Long Format for Postgres")
+        if st.button("Export Long Format CSV for Postgres"):
+            # Melt the wide dataframe into long format
+            id_vars = ['Model', 'Scenario', 'Region', 'Variable', 'Unit']
+            value_vars = [col for col in final_df.columns if col not in id_vars]
+            long_df = pd.melt(final_df, id_vars=id_vars, value_vars=value_vars,
+                              var_name='Year', value_name='Value')
 
-                        export_filename = "final_long.csv"
-                        export_path = os.path.join(user_folder, export_filename)
-                        final_long_df.to_csv(export_path, index=False)
+            # Display the long table
+            st.dataframe(long_df, use_container_width=True)
 
-                        st.success(f"Exported long format CSV as '{export_filename}' in your folder.")
+            # Download button for the long format
+            long_csv = long_df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="Download Long Format CSV",
+                data=long_csv,
+                file_name="iamc_long_format.csv",
+                mime="text/csv",
+            )
 
-                        with open(export_path, "rb") as f:
-                            st.download_button(
-                                label="Download Long Format CSV",
-                                data=f,
-                                file_name=export_filename,
-                                mime="text/csv"
-                            )
 
 else:
     st.info("No CSV files in your folder. Upload one to get started!")
